@@ -117,6 +117,11 @@ The team uses MS Teams for project coordination, discussions, task assignments, 
 This repository is the team's working repository for **Performance Task 3 – Project Kickoff & Environment Setup** and will be used as a collaborative workspace for the system integration project throughout the course.
 
 
+## Project Lead Notes
+
+The Project Lead is responsible for coordinating the development activities of Team SmartChip, monitoring repository changes, and ensuring that team contributions are properly integrated. The Project Lead also helps maintain the project structure and coordinates GitHub collaboration through branches and Pull Requests.
+
+
 
 
 # React + Vite
