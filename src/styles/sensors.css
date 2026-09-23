@@ -1,0 +1,214 @@
+.dashboard-container {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* =========================
+   HEADER
+========================= */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.subtitle {
+  color: #64748b;
+}
+
+.header-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   TOGGLE
+========================= */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.toggle input {
+  display: none;
+}
+
+.slider {
+  width: 36px;
+  height: 18px;
+  background: #e5e7eb;
+  border-radius: 20px;
+  position: relative;
+  transition: 0.3s;
+}
+
+.slider::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  background: white;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+/* checked state */
+.toggle input:checked + .slider {
+  background: #0f172a;
+}
+
+.toggle input:checked + .slider::after {
+  transform: translateX(18px);
+}
+
+/* =========================
+   BUTTON
+========================= */
+.outline-btn {
+  padding: 8px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.outline-btn:hover {
+  background: #f1f5f9;
+}
+
+/* =========================
+   STATUS CARDS
+========================= */
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.status-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.status-card strong {
+  font-size: 24px;
+  display: block;
+  margin: 6px 0;
+}
+
+/* =========================
+   PROGRESS BAR
+========================= */
+.progress {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 8px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.progress div {
+  height: 100%;
+  background: #0f172a;
+}
+
+/* =========================
+   SENSOR GRID
+========================= */
+.sensors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.sensor-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.sensor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sensor-value {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 12px 0;
+}
+
+.sensor-meta {
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.badge.online {
+  background: #0f172a;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* =========================
+   RESPONSIVE BREAKPOINTS
+========================= */
+
+/* tablet */
+@media (max-width: 992px) {
+  .status-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sensors-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* mobile */
+@media (max-width: 600px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .sensors-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sensor-value {
+    font-size: 26px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

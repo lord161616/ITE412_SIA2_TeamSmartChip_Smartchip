@@ -1,0 +1,275 @@
+* {
+  box-sizing: border-box;
+}
+
+.shop-page {
+  max-width: 1100px;
+  margin: auto;
+  padding: 30px 20px;
+  font-family: sans-serif;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* ===============================
+   HEADER
+=================================*/
+.shop-header {
+  margin-bottom: 30px;
+}
+
+.muted {
+  color: #666;
+  font-size: 14px;
+}
+
+/* ===============================
+   MAIN LAYOUT
+=================================*/
+.shop-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+/* prevent grid overflow */
+.shop-layout > * {
+  min-width: 0;
+}
+
+/* ===============================
+   CARD
+=================================*/
+.card {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ===============================
+   IMAGE SECTION
+=================================*/
+.main-image {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  object-fit: cover;
+}
+
+.thumbs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.thumbs img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #eee;
+  transition: 0.2s;
+}
+
+.thumbs img:hover {
+  transform: scale(1.05);
+}
+
+/* ===============================
+   PRODUCT INFO
+=================================*/
+.price {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.description {
+  color: #555;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ===============================
+   SIZE BUTTONS
+=================================*/
+.sizes {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+
+.sizes button {
+  padding: 8px 14px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.sizes button:hover {
+  border-color: #000;
+}
+
+.sizes .active {
+  background: black;
+  color: white;
+}
+
+/* ===============================
+   QUANTITY
+=================================*/
+.quantity {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.quantity button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* ===============================
+   TOTAL
+=================================*/
+.total {
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+/* ===============================
+   BUY BUTTON
+=================================*/
+.buy-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: black;
+  color: white;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.buy-btn:hover {
+  background: #222;
+}
+
+/* ===============================
+   TABS
+=================================*/
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  padding: 8px 14px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.tabs .active {
+  background: black;
+  color: white;
+}
+
+/* ===============================
+   INFO GRID
+=================================*/
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* ===============================
+   SECTIONS
+=================================*/
+.section {
+  margin-top: 20px;
+}
+
+.section ul {
+  padding-left: 18px;
+}
+
+.contact {
+  text-align: center;
+}
+
+/* ===============================
+   RESPONSIVE DESIGN
+=================================*/
+
+/* tablet */
+@media (max-width: 900px) {
+  .shop-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* mobile */
+@media (max-width: 600px) {
+  .shop-page {
+    padding: 20px 14px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .thumbs img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .price {
+    font-size: 20px;
+  }
+}
+
+/* small phones */
+@media (max-width: 400px) {
+  .shop-header h1 {
+    font-size: 20px;
+  }
+
+  .buy-btn {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .thumbs img {
+    width: 55px;
+    height: 55px;
+  }
+
+  
+}
+

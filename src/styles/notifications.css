@@ -1,0 +1,187 @@
+/* HEADER */
+
+.notifications-header{
+margin-bottom:20px;
+}
+
+.notifications-header h1{
+margin:0;
+color:#0f172a;
+}
+
+/* GRID */
+
+.notifications-grid{
+margin-top:20px;
+}
+
+/* ALERT PANEL */
+
+.alerts-panel{
+padding:20px;
+}
+
+.alerts-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:14px;
+}
+
+.alert-count{
+background:#0f172a;
+color:white;
+padding:4px 10px;
+border-radius:6px;
+font-size:13px;
+}
+
+/* ALERT CARD */
+
+.alert-card{
+padding:16px;
+border-radius:10px;
+margin-top:12px;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,0.05);
+border-left:5px solid;
+}
+
+.priority-high{
+border-color:#ef4444;
+}
+
+.priority-medium{
+border-color:#f59e0b;
+}
+
+.priority-low{
+border-color:#10b981;
+}
+
+/* ALERT CONTENT */
+
+.alert-top{
+display:flex;
+justify-content:space-between;
+margin-bottom:6px;
+}
+
+.alert-category{
+font-size:12px;
+font-weight:600;
+color:#0f172a;
+background:#f1f5f9;
+padding:2px 8px;
+border-radius:6px;
+}
+
+.alert-title{
+font-weight:600;
+margin-bottom:4px;
+}
+
+.alert-message{
+font-size:14px;
+color:#475569;
+}
+
+.alert-time{
+font-size:12px;
+color:#64748b;
+}
+
+/* ACK BUTTON */
+
+.ack-btn{
+margin-top:8px;
+padding:6px 12px;
+border:none;
+border-radius:6px;
+background:#0f172a;
+color:white;
+font-size:13px;
+cursor:pointer;
+}
+
+.ack-btn:hover{
+opacity:0.9;
+}
+
+/* SETTINGS */
+
+.settings-panel{
+padding:20px;
+}
+
+.settings-group{
+margin-top:18px;
+}
+
+.settings-group h4{
+margin-bottom:8px;
+font-size:14px;
+color:#0f172a;
+}
+
+/* TOGGLE ROW */
+
+.toggle-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:12px 0;
+border-bottom:1px solid #e5e7eb;
+}
+
+.toggle-label{
+font-size:14px;
+color:#1e293b;
+}
+
+/* TOGGLE SWITCH */
+
+.toggle-switch{
+position:relative;
+width:44px;
+height:22px;
+display:inline-block;
+}
+
+.toggle-switch input{
+opacity:0;
+width:0;
+height:0;
+}
+
+.toggle-slider{
+position:absolute;
+cursor:pointer;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:#cbd5e1;
+transition:0.3s;
+border-radius:30px;
+}
+
+.toggle-slider:before{
+position:absolute;
+content:"";
+height:18px;
+width:18px;
+left:2px;
+top:2px;
+background:white;
+transition:0.3s;
+border-radius:50%;
+}
+
+.toggle-switch input:checked + .toggle-slider{
+background:#0f172a;
+}
+
+.toggle-switch input:checked + .toggle-slider:before{
+transform:translateX(22px);
+}

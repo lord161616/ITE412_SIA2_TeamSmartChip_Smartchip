@@ -1,0 +1,1964 @@
+rules_version = '2';
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+
+    /* =====================================================
+       AUTHENTICATION HELPERS
+    ===================================================== */
+
+    function isSignedIn() {
+
+      return request.auth != null;
+
+    }
+
+
+    function userExists() {
+
+      return isSignedIn()
+
+        && exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        );
+
+    }
+
+
+    function userDoc() {
+
+      return get(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      );
+
+    }
+
+
+    function isActiveUser() {
+
+      return isSignedIn()
+
+        && userExists()
+
+        && userDoc().data.status == "active";
+
+    }
+
+
+    /* =====================================================
+       DEVICE AUTHENTICATION
+
+       Dedicated Firebase Authentication accounts
+       used ONLY by SmartChip ESP32 devices.
+
+       NEVER use administrator credentials inside
+       ESP32 firmware.
+    ===================================================== */
+
+    function isDevice() {
+
+      return isSignedIn()
+
+        && request.auth.uid in [
+
+          "SYHH2PdvmcdHH7PaX8eoJS5e1Ey1",
+
+          "AVinb7X523PqCJ7Nhb3YNCoZ9ok1"
+
+        ];
+
+    }
+
+
+    /* =====================================================
+       ROLE HELPERS
+    ===================================================== */
+
+    function isAdministrator() {
+
+      return isActiveUser()
+
+        && userDoc().data.accountType == "staff"
+
+        && userDoc().data.role == "administrator";
+
+    }
+
+
+    function isOperator() {
+
+      return isActiveUser()
+
+        && userDoc().data.accountType == "staff"
+
+        && userDoc().data.role in [
+
+          "operator",
+          "administrator"
+
+        ];
+
+    }
+
+
+    function isStaff() {
+
+      return isActiveUser()
+
+        && userDoc().data.accountType == "staff"
+
+        && userDoc().data.role in [
+
+          "viewer",
+          "operator",
+          "administrator"
+
+        ];
+
+    }
+
+
+    /* =====================================================
+       VALIDATION HELPERS
+    ===================================================== */
+
+    function isValidRole(role) {
+
+      return role in [
+
+        "customer",
+        "viewer",
+        "operator",
+        "administrator"
+
+      ];
+
+    }
+
+
+    function isValidAccountType(accountType) {
+
+      return accountType in [
+
+        "customer",
+        "staff"
+
+      ];
+
+    }
+
+
+    function isValidStatus(status) {
+
+      return status in [
+
+        "active",
+        "inactive",
+        "pending"
+
+      ];
+
+    }
+
+
+    /* =====================================================
+       SMARTCHIP CONSTANTS
+
+       These values must stay synchronized with:
+
+       src/services/device.js
+       src/services/dryingRunService.js
+       ESP32 firmware
+    ===================================================== */
+
+    function isValidTargetTemperature(value) {
+
+      return value is number
+
+        && value >= 30
+
+        && value <= 75;
+
+    }
+
+
+    function isValidDuration(value) {
+
+      return value is number
+
+        && value >= 0.1
+
+        && value <= 168;
+
+    }
+
+
+    function isActiveRunStatus(status) {
+
+      return status in [
+
+        "starting",
+        "preheating",
+        "drying"
+
+      ];
+
+    }
+
+
+    function isTerminalRunStatus(status) {
+
+      return status in [
+
+        "completed",
+        "cancelled",
+        "failed"
+
+      ];
+
+    }
+
+
+    function isValidMachineStatus(status) {
+
+      return status in [
+
+        "idle",
+        "starting",
+        "preheating",
+        "drying",
+        "completed",
+        "stopped",
+        "fault"
+
+      ];
+
+    }
+
+
+    function isValidHardwareState(state) {
+
+      return state in [
+
+        "ON",
+        "OFF"
+
+      ];
+
+    }
+
+
+    function isValidFaultCode(code) {
+
+      return code == null
+
+        || code in [
+
+          "SENSOR_1_FAILURE",
+          "SENSOR_2_FAILURE",
+          "SENSOR_FAILURE",
+          "OVER_TEMPERATURE",
+          "INVALID_COMMAND",
+          "INVALID_RUN",
+          "DEVICE_ERROR"
+
+        ];
+
+    }
+
+
+    /* =====================================================
+       USERS
+    ===================================================== */
+
+    match /users/{uid} {
+
+
+      /* ===================================================
+         READ
+      =================================================== */
+
+      allow read:
+
+        if isSignedIn()
+
+        && (
+
+          request.auth.uid == uid
+
+          ||
+
+          isAdministrator()
+
+        );
+
+
+      /* ===================================================
+         CREATE
+      =================================================== */
+
+      allow create:
+
+        if isSignedIn()
+
+        && request.auth.uid == uid
+
+        && request.resource.data.role == "customer"
+
+        && request.resource.data.accountType == "customer"
+
+        && request.resource.data.status in [
+
+          "active",
+          "pending"
+
+        ];
+
+
+      /* ===================================================
+         UPDATE
+      =================================================== */
+
+      allow update:
+
+        if isSignedIn()
+
+        && (
+
+          /* ===============================================
+             USER UPDATES OWN NON-PRIVILEGED PROFILE DATA
+          =============================================== */
+
+          (
+
+            request.auth.uid == uid
+
+            && request.resource.data.role
+              == resource.data.role
+
+            && request.resource.data.accountType
+              == resource.data.accountType
+
+            && request.resource.data.status
+              == resource.data.status
+
+          )
+
+
+          ||
+
+
+          /* ===============================================
+             ADMINISTRATOR MANAGES USERS
+          =============================================== */
+
+          (
+
+            isAdministrator()
+
+            && isValidRole(
+              request.resource.data.role
+            )
+
+            && isValidAccountType(
+              request.resource.data.accountType
+            )
+
+            && isValidStatus(
+              request.resource.data.status
+            )
+
+
+            /* =============================================
+               ADMIN SELF-PROTECTION
+            ============================================= */
+
+            && (
+
+              uid != request.auth.uid
+
+              ||
+
+              request.resource.data.status
+                == resource.data.status
+
+            )
+
+            && (
+
+              uid != request.auth.uid
+
+              ||
+
+              request.resource.data.role
+                == resource.data.role
+
+            )
+
+            && (
+
+              uid != request.auth.uid
+
+              ||
+
+              request.resource.data.accountType
+                == resource.data.accountType
+
+            )
+
+          )
+
+        );
+
+
+      /* ===================================================
+         DELETE
+      =================================================== */
+
+      allow delete:
+
+        if false;
+
+    }
+
+
+    /* =====================================================
+       INVENTORY
+    ===================================================== */
+
+    match /inventory/{batchId} {
+
+
+      /* ===================================================
+         READ
+      =================================================== */
+
+      allow read:
+
+        if isStaff();
+
+
+      /* ===================================================
+         CREATE FRESH BATCH
+      =================================================== */
+
+      allow create:
+
+        if isOperator()
+
+        && request.resource.data.batchNumber is string
+
+        && request.resource.data.batchNumber.size() > 0
+
+        && request.resource.data.batchNumber.size() <= 50
+
+        && request.resource.data.freshWeight is number
+
+        && request.resource.data.freshWeight > 0
+
+        && request.resource.data.harvestDate is string
+
+        && request.resource.data.harvestDate.size() > 0
+
+        && request.resource.data.status == "Fresh"
+
+        && request.resource.data.driedWeight == null
+
+        && request.resource.data.actualStartTime == null
+
+        && request.resource.data.expectedEndTime == null
+
+        && request.resource.data.durationHours == null
+
+        && request.resource.data.targetTemp == null
+
+        && request.resource.data.createdAt is timestamp
+
+        && request.resource.data.updatedAt is timestamp;
+
+
+      /* ===================================================
+         EDIT FRESH BATCH
+
+         Fresh → Fresh
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && resource.data.status == "Fresh"
+
+        && request.resource.data.status == "Fresh"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "batchNumber",
+            "freshWeight",
+            "harvestDate",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         START DRYING
+
+         Fresh → Drying
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && resource.data.status == "Fresh"
+
+        && request.resource.data.status == "Drying"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "targetTemp",
+            "durationHours",
+            "actualStartTime",
+            "updatedAt"
+
+          ])
+
+        && isValidTargetTemperature(
+          request.resource.data.targetTemp
+        )
+
+        && isValidDuration(
+          request.resource.data.durationHours
+        )
+
+        && request.resource.data.actualStartTime == null;
+
+
+      /* ===================================================
+         ESP32 START CONFIRMATION
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && resource.data.status == "Drying"
+
+        && request.resource.data.status == "Drying"
+
+        && resource.data.actualStartTime == null
+
+        && request.resource.data.actualStartTime is timestamp
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "actualStartTime",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         OFFLINE RECOVERY
+
+         Drying → Fresh
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && resource.data.status == "Drying"
+
+        && request.resource.data.status == "Fresh"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "targetTemp",
+            "durationHours",
+            "actualStartTime",
+            "expectedEndTime",
+            "updatedAt"
+
+          ])
+
+        && request.resource.data.targetTemp == null
+
+        && request.resource.data.durationHours == null
+
+        && request.resource.data.actualStartTime == null;
+
+
+      /* ===================================================
+         COMPLETE DRYING
+
+         Drying → Dried
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && resource.data.status == "Drying"
+
+        && request.resource.data.status == "Dried"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "driedWeight",
+            "actualEndTime",
+            "updatedAt"
+
+          ])
+
+        && (
+
+          !("driedWeight" in request.resource.data)
+
+          ||
+
+          request.resource.data.driedWeight == null
+
+          ||
+
+          (
+
+            request.resource.data.driedWeight is number
+
+            && request.resource.data.driedWeight >= 0
+
+          )
+
+        );
+
+
+      /* ===================================================
+         ARCHIVE INVENTORY
+
+         Fresh / Dried → Archived
+      =================================================== */
+
+      allow update:
+
+        if isAdministrator()
+
+        && resource.data.status in [
+
+          "Fresh",
+          "Dried"
+
+        ]
+
+        && request.resource.data.status == "Archived"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         DELETE
+      =================================================== */
+
+      allow delete:
+
+        if false;
+
+    }
+
+
+    /* =====================================================
+       DRYING RUNS
+    ===================================================== */
+
+    match /dryingRuns/{runId} {
+
+
+      /* ===================================================
+         READ
+      =================================================== */
+
+      allow read:
+
+        if isStaff()
+
+        || isDevice();
+
+
+      /* ===================================================
+         CREATE
+      =================================================== */
+
+      allow create:
+
+        if isOperator()
+
+        && request.resource.data.deviceId
+          == "SMARTCHIP-ESP32-01"
+
+        && request.resource.data.status
+          == "starting"
+
+        && request.resource.data.batchId
+          is string
+
+        && request.resource.data.batchNumber
+          is string
+
+        && isValidTargetTemperature(
+          request.resource.data.targetTemp
+        )
+
+        && isValidDuration(
+          request.resource.data.durationHours
+        )
+
+        && request.resource.data.createdBy
+          == request.auth.uid
+
+        && request.resource.data.actualStartTime
+          == null
+
+        && request.resource.data.actualEndTime
+          == null
+
+        && request.resource.data.initialWeight
+          is number
+
+        && request.resource.data.initialWeight
+          > 0
+
+        && request.resource.data.finalWeight
+          == null
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF";
+
+
+      /* ===================================================
+         WEB OFFLINE RECOVERY
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && !isTerminalRunStatus(
+          resource.data.status
+        )
+
+        && request.resource.data.status
+          == "cancelled"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "actualEndTime",
+            "heaterState",
+            "fanState",
+            "updatedAt"
+
+          ])
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF";
+
+
+      /* ===================================================
+         ESP32 START CONFIRMATION
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && resource.data.deviceId
+          == "SMARTCHIP-ESP32-01"
+
+        && resource.data.status == "starting"
+
+        && request.resource.data.status in [
+
+          "preheating",
+          "drying"
+
+        ]
+
+        && resource.data.actualStartTime == null
+
+        && request.resource.data.actualStartTime
+          is timestamp
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "actualStartTime",
+            "heaterState",
+            "fanState",
+            "currentTemp",
+            "currentHumidity",
+            "updatedAt"
+
+          ])
+
+        && request.resource.data.deviceId
+          == resource.data.deviceId
+
+        && request.resource.data.batchId
+          == resource.data.batchId
+
+        && request.resource.data.batchNumber
+          == resource.data.batchNumber
+
+        && request.resource.data.targetTemp
+          == resource.data.targetTemp
+
+        && request.resource.data.durationHours
+          == resource.data.durationHours
+
+        && request.resource.data.createdBy
+          == resource.data.createdBy;
+
+
+      /* ===================================================
+         ESP32 ACTIVE PROCESS UPDATE
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && resource.data.deviceId
+          == "SMARTCHIP-ESP32-01"
+
+        && resource.data.status in [
+
+          "preheating",
+          "drying"
+
+        ]
+
+        && request.resource.data.status in [
+
+          "preheating",
+          "drying"
+
+        ]
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "heaterState",
+            "fanState",
+            "currentTemp",
+            "currentHumidity",
+            "faultCode",
+            "faultMessage",
+            "faultAt",
+            "updatedAt"
+
+          ])
+
+        && request.resource.data.deviceId
+          == resource.data.deviceId
+
+        && request.resource.data.batchId
+          == resource.data.batchId
+
+        && request.resource.data.batchNumber
+          == resource.data.batchNumber
+
+        && request.resource.data.targetTemp
+          == resource.data.targetTemp
+
+        && request.resource.data.durationHours
+          == resource.data.durationHours
+
+        && request.resource.data.createdBy
+          == resource.data.createdBy;
+
+
+      /* ===================================================
+         ESP32 STOP CONFIRMATION
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && isActiveRunStatus(
+          resource.data.status
+        )
+
+        && request.resource.data.status
+          == "cancelled"
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "actualEndTime",
+            "heaterState",
+            "fanState",
+            "currentTemp",
+            "currentHumidity",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 COMPLETE RUN
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && isActiveRunStatus(
+          resource.data.status
+        )
+
+        && request.resource.data.status
+          == "completed"
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.actualEndTime
+          is timestamp
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "actualEndTime",
+            "heaterState",
+            "fanState",
+            "currentTemp",
+            "currentHumidity",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 FAULT REPORTING
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && !isTerminalRunStatus(
+          resource.data.status
+        )
+
+        && request.resource.data.status
+          == "failed"
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && isValidFaultCode(
+          request.resource.data.faultCode
+        )
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "status",
+            "actualEndTime",
+            "heaterState",
+            "fanState",
+            "currentTemp",
+            "currentHumidity",
+            "faultCode",
+            "faultMessage",
+            "faultAt",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         DELETE
+      =================================================== */
+
+      allow delete:
+
+        if false;
+
+    }
+
+
+    /* =====================================================
+       DEVICES
+    ===================================================== */
+
+    match /devices/{deviceId} {
+
+
+      /* ===================================================
+         READ
+      =================================================== */
+
+      allow read:
+
+        if isStaff()
+
+        || isDevice();
+
+
+      /* ===================================================
+         CREATE
+      =================================================== */
+
+      allow create:
+
+        if isAdministrator()
+
+        && deviceId == "SMARTCHIP-ESP32-01";
+
+
+      /* ===================================================
+         WEB START COMMAND
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.machineStatus
+          == "idle"
+
+        && resource.data.activeRunId
+          == null
+
+        && resource.data.activeBatchId
+          == null
+
+        && resource.data.command
+          == null
+
+        && request.resource.data.machineStatus
+          == "starting"
+
+        && request.resource.data.activeRunId
+          is string
+
+        && request.resource.data.activeBatchId
+          is string
+
+        && request.resource.data.command
+          == "START"
+
+        && request.resource.data.commandId
+          is string
+
+        && request.resource.data.commandRunId
+          == request.resource.data.activeRunId
+
+        && request.resource.data.commandCreatedAt
+          is timestamp
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "activeRunId",
+            "activeBatchId",
+            "command",
+            "commandId",
+            "commandRunId",
+            "commandCreatedAt",
+            "heaterState",
+            "fanState",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         WEB STOP COMMAND
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.activeRunId
+          is string
+
+        && resource.data.command
+          == null
+
+        && request.resource.data.activeRunId
+          == resource.data.activeRunId
+
+        && request.resource.data.activeBatchId
+          == resource.data.activeBatchId
+
+        && request.resource.data.command
+          == "STOP"
+
+        && request.resource.data.commandId
+          is string
+
+        && request.resource.data.commandRunId
+          == resource.data.activeRunId
+
+        && request.resource.data.commandCreatedAt
+          is timestamp
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "command",
+            "commandId",
+            "commandRunId",
+            "commandCreatedAt",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ACKNOWLEDGE COMPLETED DEVICE
+
+         COMPLETED
+           ↓
+         IDLE
+
+         WEB / OPERATOR
+
+         This is intentionally separate from the ESP32
+         completion-to-idle transition.
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.machineStatus
+          == "completed"
+
+        && resource.data.activeRunId
+          == null
+
+        && resource.data.activeBatchId
+          == null
+
+        && request.resource.data.machineStatus
+          == "idle"
+
+        && request.resource.data.activeRunId
+          == null
+
+        && request.resource.data.activeBatchId
+          == null
+
+        && request.resource.data.command
+          == null
+
+        && request.resource.data.commandId
+          == null
+
+        && request.resource.data.commandRunId
+          == null
+
+        && request.resource.data.commandCreatedAt
+          == null
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "command",
+            "commandId",
+            "commandRunId",
+            "commandCreatedAt",
+            "heaterState",
+            "fanState",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         OFFLINE RECOVERY
+
+         STALE STATE
+           ↓
+         IDLE
+      =================================================== */
+
+      allow update:
+
+        if isOperator()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && (
+
+          !("lastSeen" in resource.data)
+
+          ||
+
+          resource.data.lastSeen == null
+
+          ||
+
+          (
+
+            resource.data.lastSeen is timestamp
+
+            &&
+
+            resource.data.lastSeen
+              < request.time - duration.value(60, "s")
+
+          )
+
+        )
+
+        && (
+
+          resource.data.activeRunId != null
+
+          ||
+
+          resource.data.activeBatchId != null
+
+          ||
+
+          resource.data.command != null
+
+          ||
+
+          resource.data.commandId != null
+
+          ||
+
+          resource.data.commandRunId != null
+
+          ||
+
+          resource.data.machineStatus != "idle"
+
+        )
+
+        && request.resource.data.machineStatus
+          == "idle"
+
+        && request.resource.data.activeRunId
+          == null
+
+        && request.resource.data.activeBatchId
+          == null
+
+        && request.resource.data.command
+          == null
+
+        && request.resource.data.commandId
+          == null
+
+        && request.resource.data.commandRunId
+          == null
+
+        && request.resource.data.commandCreatedAt
+          == null
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.durationSeconds
+          == 0
+
+        && request.resource.data.remainingSeconds
+          == 0
+
+        && request.resource.data.faultCode
+          == null
+
+        && request.resource.data.faultMessage
+          == null
+
+        && request.resource.data.faultAt
+          == null
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "activeRunId",
+            "activeBatchId",
+            "command",
+            "commandId",
+            "commandRunId",
+            "commandCreatedAt",
+            "durationSeconds",
+            "remainingSeconds",
+            "faultCode",
+            "faultMessage",
+            "faultAt",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 START PROCESSING
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.machineStatus
+          == "starting"
+
+        && resource.data.activeRunId
+          is string
+
+        && resource.data.activeBatchId
+          is string
+
+        && resource.data.command
+          == "START"
+
+        && resource.data.commandId
+          is string
+
+        && request.resource.data.machineStatus
+          in [
+
+            "preheating",
+            "drying"
+
+          ]
+
+        && request.resource.data.activeRunId
+          == resource.data.activeRunId
+
+        && request.resource.data.activeBatchId
+          == resource.data.activeBatchId
+
+        && request.resource.data.command
+          == null
+
+        && request.resource.data.commandId
+          == null
+
+        && request.resource.data.commandRunId
+          == null
+
+        && request.resource.data.commandCreatedAt
+          == null
+
+        && request.resource.data.lastProcessedCommandId
+          == resource.data.commandId
+
+        && isValidHardwareState(
+          request.resource.data.heaterState
+        )
+
+        && isValidHardwareState(
+          request.resource.data.fanState
+        )
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "command",
+            "commandId",
+            "commandRunId",
+            "commandCreatedAt",
+            "lastProcessedCommandId",
+            "currentTemp",
+            "currentHumidity",
+            "heaterState",
+            "fanState",
+            "lastSeen",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 ACTIVE TELEMETRY
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.machineStatus
+          in [
+
+            "preheating",
+            "drying"
+
+          ]
+
+        && request.resource.data.machineStatus
+          in [
+
+            "preheating",
+            "drying"
+
+          ]
+
+        && request.resource.data.activeRunId
+          == resource.data.activeRunId
+
+        && request.resource.data.activeBatchId
+          == resource.data.activeBatchId
+
+        && request.resource.data.command
+          == resource.data.command
+
+        && request.resource.data.commandId
+          == resource.data.commandId
+
+        && request.resource.data.commandRunId
+          == resource.data.commandRunId
+
+        && request.resource.data.commandCreatedAt
+          == resource.data.commandCreatedAt
+
+        && isValidHardwareState(
+          request.resource.data.heaterState
+        )
+
+        && isValidHardwareState(
+          request.resource.data.fanState
+        )
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "currentTemp",
+            "currentHumidity",
+            "heaterState",
+            "fanState",
+            "faultCode",
+            "faultMessage",
+            "faultAt",
+            "lastSeen",
+            "updatedAt"
+
+          ])
+
+        && isValidFaultCode(
+          request.resource.data.faultCode
+        );
+
+
+      /* ===================================================
+         ESP32 STOP PROCESSING
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.activeRunId
+          is string
+
+        && resource.data.command
+          == "STOP"
+
+        && resource.data.commandId
+          is string
+
+        && resource.data.commandRunId
+          == resource.data.activeRunId
+
+        && request.resource.data.machineStatus
+          == "idle"
+
+        && request.resource.data.activeRunId
+          == null
+
+        && request.resource.data.activeBatchId
+          == null
+
+        && request.resource.data.command
+          == null
+
+        && request.resource.data.commandId
+          == null
+
+        && request.resource.data.commandRunId
+          == null
+
+        && request.resource.data.commandCreatedAt
+          == null
+
+        && request.resource.data.lastProcessedCommandId
+          == resource.data.commandId
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "activeRunId",
+            "activeBatchId",
+            "command",
+            "commandId",
+            "commandRunId",
+            "commandCreatedAt",
+            "lastProcessedCommandId",
+            "currentTemp",
+            "currentHumidity",
+            "heaterState",
+            "fanState",
+            "lastSeen",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 COMPLETE PROCESS
+
+         ACTIVE
+           ↓
+         COMPLETED
+
+         Machine lock is released.
+
+         The completed state remains visible until
+         the completion acknowledgement/idle transition.
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.activeRunId
+          is string
+
+        && request.resource.data.machineStatus
+          == "completed"
+
+        && request.resource.data.activeRunId
+          == null
+
+        && request.resource.data.activeBatchId
+          == null
+
+        && request.resource.data.command
+          == null
+
+        && request.resource.data.commandId
+          == null
+
+        && request.resource.data.commandRunId
+          == null
+
+        && request.resource.data.commandCreatedAt
+          == null
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "activeRunId",
+            "activeBatchId",
+            "command",
+            "commandId",
+            "commandRunId",
+            "commandCreatedAt",
+            "lastProcessedCommandId",
+            "currentTemp",
+            "currentHumidity",
+            "heaterState",
+            "fanState",
+            "lastSeen",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 COMPLETION → IDLE
+
+         COMPLETED
+           ↓
+         IDLE
+
+         This is the physical device's final state
+         transition after a successful drying cycle.
+
+         IMPORTANT:
+
+         This is NOT the same as the web/operator
+         acknowledgement rule above.
+
+         The ESP32 is allowed to perform this transition
+         only when:
+
+         - the current machine state is COMPLETED
+         - all machine locks are already released
+         - no command is pending
+         - heater is OFF
+         - fan is OFF
+         - timer is reset
+         - fault state is cleared
+
+         The ESP32 may update current sensor values
+         and heartbeat information during this transition.
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.machineStatus
+          == "completed"
+
+        && resource.data.activeRunId
+          == null
+
+        && resource.data.activeBatchId
+          == null
+
+        && resource.data.command
+          == null
+
+        && resource.data.commandId
+          == null
+
+        && resource.data.commandRunId
+          == null
+
+        && resource.data.commandCreatedAt
+          == null
+
+        && request.resource.data.machineStatus
+          == "idle"
+
+        && request.resource.data.activeRunId
+          == null
+
+        && request.resource.data.activeBatchId
+          == null
+
+        && request.resource.data.command
+          == null
+
+        && request.resource.data.commandId
+          == null
+
+        && request.resource.data.commandRunId
+          == null
+
+        && request.resource.data.commandCreatedAt
+          == null
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.durationSeconds
+          == 0
+
+        && request.resource.data.remainingSeconds
+          == 0
+
+        && request.resource.data.faultCode
+          == null
+
+        && request.resource.data.faultMessage
+          == null
+
+        && request.resource.data.faultAt
+          == null
+
+        && isValidFaultCode(
+          request.resource.data.faultCode
+        )
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "durationSeconds",
+            "remainingSeconds",
+            "currentTemp",
+            "currentHumidity",
+            "heaterState",
+            "fanState",
+            "faultCode",
+            "faultMessage",
+            "faultAt",
+            "lastSeen",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 FAULT PROCESS
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && request.resource.data.machineStatus
+          == "fault"
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && isValidFaultCode(
+          request.resource.data.faultCode
+        )
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "machineStatus",
+            "currentTemp",
+            "currentHumidity",
+            "heaterState",
+            "fanState",
+            "faultCode",
+            "faultMessage",
+            "faultAt",
+            "lastSeen",
+            "updatedAt"
+
+          ]);
+
+
+      /* ===================================================
+         ESP32 IDLE HEARTBEAT
+      =================================================== */
+
+      allow update:
+
+        if isDevice()
+
+        && deviceId == "SMARTCHIP-ESP32-01"
+
+        && resource.data.machineStatus
+          == "idle"
+
+        && request.resource.data.machineStatus
+          == "idle"
+
+        && request.resource.data.activeRunId
+          == resource.data.activeRunId
+
+        && request.resource.data.activeBatchId
+          == resource.data.activeBatchId
+
+        && request.resource.data.command
+          == resource.data.command
+
+        && request.resource.data.commandId
+          == resource.data.commandId
+
+        && request.resource.data.commandRunId
+          == resource.data.commandRunId
+
+        && request.resource.data.commandCreatedAt
+          == resource.data.commandCreatedAt
+
+        && request.resource.data.heaterState
+          == "OFF"
+
+        && request.resource.data.fanState
+          == "OFF"
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            "currentTemp",
+            "currentHumidity",
+            "heaterState",
+            "fanState",
+            "faultCode",
+            "faultMessage",
+            "faultAt",
+            "lastSeen",
+            "updatedAt"
+
+          ])
+
+        && (
+
+          !("faultCode" in request.resource.data)
+
+          ||
+
+          isValidFaultCode(
+            request.resource.data.faultCode
+          )
+
+        );
+
+
+      /* ===================================================
+         DELETE
+      =================================================== */
+
+      allow delete:
+
+        if false;
+
+    }
+
+
+    /* =====================================================
+       ESP32 TEST DOCUMENTS
+    ===================================================== */
+
+    match /esp32Tests/firebaseConnection {
+
+      allow read, write:
+
+        if isDevice();
+
+    }
+
+
+    match /esp32Tests/sensorTest {
+
+      allow read, write:
+
+        if isDevice();
+
+    }
+
+
+    /* =====================================================
+       DEFAULT DENY
+    ===================================================== */
+
+    match /{document=**} {
+
+      allow read, write:
+
+        if false;
+
+    }
+
+  }
+
+}
