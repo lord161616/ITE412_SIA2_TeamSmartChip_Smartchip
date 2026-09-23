@@ -139,7 +139,7 @@ Testing will include functional testing of the web application, integration test
 
 ## 5. Project Repository Structure
 
-```text
+
 /docs
     Project documentation
 
@@ -151,4 +151,7 @@ Testing will include functional testing of the web application, integration test
 
 /integration
     Integration scripts and configurations
-```
+
+## Documentation Responsibility
+
+The documentation component records the project's objectives, scope, stakeholders, technologies, integration approach, and other important project information. Proper documentation helps the team maintain a clear understanding of the system throughout development.
