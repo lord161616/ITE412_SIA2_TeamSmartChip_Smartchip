@@ -155,3 +155,8 @@ Testing will include functional testing of the web application, integration test
 ## Documentation Responsibility
 
 The documentation component records the project's objectives, scope, stakeholders, technologies, integration approach, and other important project information. Proper documentation helps the team maintain a clear understanding of the system throughout development.
+
+
+## Documentation Contribution Update 2 from different account 
+
+This section was prepared by Irene C. Jalotjot as part of the SmartChip project documentation. The documentation provides an overview of the system objectives, proposed scope, stakeholders, technologies, and integration components of the project.
