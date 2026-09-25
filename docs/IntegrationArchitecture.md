@@ -56,6 +56,7 @@ The ESP32 communicates with the cloud system and controls the physical drying eq
 
 Physical Hardware
 
+
 The ESP32 interacts with temperature and humidity sensors, the heater, fan, LCD display, and physical control buttons.
 
 Data Flow
@@ -66,3 +67,7 @@ The ESP32 receives authorized device commands from the cloud system.
 The ESP32 controls the physical drying hardware.
 Device status and sensor information are reported back to the cloud system.
 The web application displays the updated system information to authorized users.
+
+## Diagram Designer Contribution update 2 different github acc
+
+This document was prepared and maintained by Jeremy B. Abarra as part of the SmartChip project integration documentation. It describes how the web application, Firebase Cloud Firestore, and ESP32 device communicate as integrated components.
