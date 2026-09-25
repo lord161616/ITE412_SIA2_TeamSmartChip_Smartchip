@@ -51,3 +51,9 @@ The presentation can demonstrate the following sequence:
 5. Cloud Firestore coordinates application and device data.
 6. The ESP32 controls the physical drying system.
 7. The resulting drying status and inventory information are displayed in the application.
+
+
+
+## Presenter Contribution update using different acc 
+
+This section was prepared by Nica Pauline Gan as part of the SmartChip project presentation documentation. The presentation focuses on the project's objectives, system integration, major features, benefits, and demonstration flow.
