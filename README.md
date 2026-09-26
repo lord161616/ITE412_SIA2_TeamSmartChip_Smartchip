@@ -122,7 +122,14 @@ This repository is the team's working repository for **Performance Task 3 – Pr
 The Project Lead is responsible for coordinating the development activities of Team SmartChip, monitoring repository changes, and ensuring that team contributions are properly integrated. The Project Lead also helps maintain the project structure and coordinates GitHub collaboration through branches and Pull Requests.
 
 
+## SmartChip REST API
 
+### Running the API
+
+From the SmartChip project root, run:
+
+```bash
+node src/api/server.js
 
 # React + Vite
 

@@ -1,0 +1,53 @@
+{
+  "info": {
+    "_postman_id": "ca3cd3b8-ac5f-4468-aaf7-cfd943bac0ad",
+    "name": "SmartChip REST API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "57475641",
+    "_collection_link": "https://go.postman.co/collection/57475641-ca3cd3b8-ac5f-4468-aaf7-cfd943bac0ad?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Drying Runs",
+      "item": [
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
