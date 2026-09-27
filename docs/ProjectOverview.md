@@ -163,3 +163,32 @@ SmartChip implements a producer-consumer messaging pattern to demonstrate asynch
 The Consumer retrieves each drying request asynchronously and validates the requested drying parameters. Requests within the configured operating temperature range of 30°C to 75°C are approved, while requests outside the normal range are rejected.
 
 This messaging workflow demonstrates how separate SmartChip modules can communicate without requiring the producer and consumer to process a request at the same time. The current prototype uses a Node.js in-memory queue for demonstration purposes. The concept can later be extended to a dedicated messaging middleware platform such as RabbitMQ or integrated with the existing Firestore and ESP32 command architecture.
+
+## High-Level System Overview
+
+### Major Modules/Subsystems
+
+The SmartChip system is composed of several major modules that work together to provide IoT-based mushroom drying, monitoring, inventory management, and product reservation.
+
+1. **User Authentication and Access Control**  
+   This module manages user registration, login, authentication, user roles, account types, and access permissions. SmartChip supports different roles such as Customer, Viewer, Operator, and Administrator.
+
+2. **Drying Schedule and Run Management**  
+   This module allows authorized staff or operators to schedule and manage mushroom drying operations. It manages the selected batch, target temperature, drying duration, drying run status, and START/STOP operations.
+
+3. **Device and Sensor Monitoring**  
+   This module connects the web application with the ESP32 SmartChip device. The ESP32 receives commands from the system and sends machine status, temperature, humidity, heartbeat, and other device information to the system.
+
+4. **Inventory Management**  
+   This module manages mushroom batches throughout the drying process. Inventory can progress through statuses such as Fresh, Scheduled, Drying, Dried, and Archived. The module also makes available dried stock visible to the Shop module.
+
+5. **Shop and Reservation Management**  
+   This module allows customers to view available dried mushroom products and submit reservations. Reservations are based on the availability of dried mushroom inventory.
+
+### External Systems/Interfaces
+
+SmartChip uses several external technologies and services to support its operation. **Firebase Authentication** is used to authenticate users and manage secure access to the application. **Cloud Firestore** is used as the main database for storing user information, inventory records, drying runs, device states, commands, and reservation records. The **ESP32 SmartChip Device** serves as the hardware interface between the software system and the physical drying machine. The ESP32 communicates with the system through Firestore and provides sensor and machine status information.
+
+### Data Flow Summary
+
+Data flows through SmartChip between users, the web application, Cloud Firestore, and the ESP32 device. Customers and staff interact with the React-based SmartChip application. User authentication requests are processed through Firebase Authentication, while application data is stored in Cloud Firestore. Staff can create drying schedules and manage drying runs, which update the appropriate inventory and device records. When a drying operation is started, the system sends a START command to the ESP32 through the device command mechanism. The ESP32 processes the command and sends machine status, temperature, humidity, and heartbeat information back to the system. The web application uses this information to display the current condition of the drying machine. After a drying operation is completed, the corresponding inventory batch can be recorded as dried stock and made available for customer reservation.
