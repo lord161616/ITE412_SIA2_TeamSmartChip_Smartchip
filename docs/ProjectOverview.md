@@ -192,3 +192,19 @@ SmartChip uses several external technologies and services to support its operati
 ### Data Flow Summary
 
 Data flows through SmartChip between users, the web application, Cloud Firestore, and the ESP32 device. Customers and staff interact with the React-based SmartChip application. User authentication requests are processed through Firebase Authentication, while application data is stored in Cloud Firestore. Staff can create drying schedules and manage drying runs, which update the appropriate inventory and device records. When a drying operation is started, the system sends a START command to the ESP32 through the device command mechanism. The ESP32 processes the command and sends machine status, temperature, humidity, and heartbeat information back to the system. The web application uses this information to display the current condition of the drying machine. After a drying operation is completed, the corresponding inventory batch can be recorded as dried stock and made available for customer reservation.
+
+Integration Pattern Applied
+
+Hub-Spoke
+
+The Hub-Spoke integration pattern is applied to SmartChip because the system contains several modules that need to exchange information while interacting with a physical IoT device. Cloud Firestore functions as the central hub, while the React web application, ESP32 controller, inventory, scheduler, drying-run management, analytics, history, and shop modules act as connected components or spokes.
+
+Rationale
+
+Hub-Spoke is appropriate for SmartChip because it centralizes important system data and machine-state communication in Cloud Firestore. Instead of creating separate direct connections between every application module and the ESP32, the modules communicate through the Firestore hub. For example, the Scheduler stores a drying command in Firestore, the ESP32 retrieves and processes the command, and the resulting machine status is written back to Firestore for the Dashboard and other modules to use. This reduces direct dependencies between modules and makes the system easier to maintain as additional features are added. It also provides a central location for managing inventory, drying runs, device states, sensor information, and reservations.
+
+Diagram Reference
+
+File: /docs/SmartChip_HubSpoke_Architecture.png
+
+The architecture diagram illustrates Cloud Firestore as the central hub connecting the SmartChip web application, authentication, ESP32 controller, sensors, hardware control, inventory, scheduler, drying-run management, analytics, history, and shop/reservation functions.
