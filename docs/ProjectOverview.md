@@ -155,3 +155,11 @@ Testing will include functional testing of the web application, integration test
 ## Documentation Responsibility
 
 The documentation component records the project's objectives, scope, stakeholders, technologies, integration approach, and other important project information. Proper documentation helps the team maintain a clear understanding of the system throughout development.
+
+## Messaging Workflow
+
+SmartChip implements a producer-consumer messaging pattern to demonstrate asynchronous communication between the Drying Scheduler and the drying processing module. The Scheduler acts as the producer by creating a drying request containing the batch ID, target temperature, and drying duration. Instead of processing the request immediately, the request is placed into a message queue.
+
+The Consumer retrieves each drying request asynchronously and validates the requested drying parameters. Requests within the configured operating temperature range of 30°C to 75°C are approved, while requests outside the normal range are rejected.
+
+This messaging workflow demonstrates how separate SmartChip modules can communicate without requiring the producer and consumer to process a request at the same time. The current prototype uses a Node.js in-memory queue for demonstration purposes. The concept can later be extended to a dedicated messaging middleware platform such as RabbitMQ or integrated with the existing Firestore and ESP32 command architecture.
